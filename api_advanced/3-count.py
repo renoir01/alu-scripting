@@ -29,7 +29,7 @@ def count_words(subreddit, word_list, fullname="", count=0, hash_table={}):
         for word in word_list:
             word = word.lower()
             formatted_title = title.lower().split(" ")
-            if word in formatted_title:
+            if word.lower() in formatted_title:
                 if (word in hash_table.keys()):
                     hash_table[word] += formatted_title.count(word)
                 else:
