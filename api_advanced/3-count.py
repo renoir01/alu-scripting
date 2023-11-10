@@ -1,44 +1,96 @@
 #!/usr/bin/python3
-'''a recursive function that queries the Reddit API,
- parses the title of all hot articles, and prints a
- sorted count of given keywords
-'''
-import requests
+"""
+Write a recursive function that queries the Reddit API
+and returns a list containing the titles of all hot
+articles for a given subreddit.
+If no results are found for the given subreddit,
+the function should return None.
+
+Hint: The Reddit API uses pagination for
+separating pages of responses.
+
+Requirements:
+
+Prototype: def recurse(subreddit, hot_list=[])
+Note: You may change the prototype, but it must
+be able to be called with just a subreddit supplied.
+AKA you can add a counter, but it must work without
+supplying a starting value in the main.
+If not a valid subreddit, return None.
+NOTE: Invalid subreddits may return a redirect to
+search results. Ensure that you are not following redirects.
+
+used the data type string for the hot_list parameter
+"""
+import json
+import urllib.error
+import urllib.parse
+import urllib.request
+import time
 
 
-def count_words(subreddit, word_list, fullname="", count=0, hash_table={}):
-    '''fetches all hot posts in a subreddit
-    Return:
-        None - if subreddit is invalid
-    '''
-    if subreddit is None or not isinstance(subreddit, str) or \
-       word_list is None or word_list == []:
-        return
-    url = 'https://www.reddit.com/r/{}/hot/.json'.format(subreddit)
-    params = {'after': fullname, 'limit': 100, 'count': count}
-    headers = {'user-agent': 'Mozilla/5.0 \
-(Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.0'}
-    info = requests.get(url, headers=headers,
-                        params=params, allow_redirects=False)
-    if info.status_code != 200:
+def recurse(subreddit, hot_list=[]):
+    list_len = len(hot_list)
+    limit = list_len + 1
+    query = {"limit": limit - 1}
+    query = urllib.parse.urlencode(query)
+    url = f"https://www.reddit.com/r/{subreddit}/hot/.json?{query}"
+    req_object = urllib.request.Request(url, method="GET")
+    req_object.add_header('User-Agent', 'OboloScript/3.0')
+    try:
+        with urllib.request.urlopen(req_object) as resp_object:
+            resp_json = json.load(resp_object)
+    except urllib.error.HTTPError:
         return None
-    info_json = info.json()
-    results = info_json.get('data').get('children')
-    new_packet = [post.get('data').get('title') for post in results]
-    for title in new_packet:
-        for word in word_list:
-            word = word.lower()
-            formatted_title = title.lower().split(" ")
-            if word in formatted_title:
-                if (word in hash_table.keys()):
-                    hash_table[word] += formatted_title.count(word)
-                else:
-                    hash_table[word] = formatted_title.count(word)
-    after = info_json.get('data').get('after', None)
-    dist = info_json.get('data').get('dist')
-    count += dist
-    if after:
-        count_words(subreddit, word_list, after, count, hash_table)
     else:
-        {print('{}: {}'.format(key, value)) for
-         key, value in sorted(hash_table.items(), key=lambda i: (-i[1], i[0]))}
+        resp_children = resp_json["data"]["children"]
+        try:
+            _ = resp_children[limit - 1]["data"]["title"]
+        except IndexError:
+            return hot_list
+        else:
+            if len(resp_children) == 2:
+                hot_list.append(resp_children[limit - 1]["data"]["title"])
+                hot_list.append(resp_children[limit]["data"]["title"])
+                """
+                return hot_list
+                or this below
+                final_list.append(0)
+                final_list.append(1)
+                hot_list += "0"
+                hot_list += "1"
+                """
+            else:
+                hot_list.append(resp_children[limit - 1]["data"]["title"])
+                """
+                or this below
+                final_list.append(2)
+                hot_list += "2"
+                """
+                time.sleep(5)
+            return recurse(subreddit, hot_list)
+
+
+def count(subreddit, word_list):
+    hot_articles_list = recurse(subreddit)
+    if len(word_list) == 0:
+        length = len(word_list)
+        return f"Failed! an Empty list of length {length} was given."
+    emp_dict = {}
+    for word in word_list:
+        for hot_article in hot_articles_list:
+            hot_article_split = hot_article.split()
+            if word.upper() in hot_article_split or \
+               word.lower() in hot_article_split or \
+               word.capitalize() in hot_article_split:
+                emp_dict[f"{word}"] = emp_dict.get(f"{word}", 0) + 1
+                continue
+    for key, value in zip(emp_dict.keys(), emp_dict.values()):
+        print(f"{key}: {value}")
+    return "Succesful :)"
+
+
+"""
+result = count("programming", ["python", "javascript", "ruby", "software"])
+print(result)
+"""
