@@ -6,7 +6,9 @@
 import requests
 
 
-def count_words(subreddit, word_list, fullname="", count=0, hash_table={}):
+def count_words(subreddit, word_list, fullname="", count=0, hash_table=None):
+    if hash_table is None:
+        hash_table = {}
     '''fetches all hot posts in a subreddit
     Return:
         None - if subreddit is invalid
